@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Online Mesajlaşma Sitesi</title>
+    <style>
+        /* CSS stil ayarları */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e9ecef;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        h1 {
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+        #onlineCount, #userList {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #495057;
+        }
+        #chat {
+            display: none;
+            width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background: white;
+            overflow: hidden;
+        }
+        #messages {
+            height: 300px;
+            border-top: 1px solid #dee2e6;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        .message {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .username {
+            font-weight: bold;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #868e96;
+            margin-left: 10px;
+        }
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+        }
+        #inputArea {
+            display: flex;
+            padding: 15px;
+            background: #ffffff;
+            border-top: 1px solid #dee2e6;
+        }
+        #messageInput {
+            flex: 1;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-right: 10px;
+        }
+        #sendButton {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        #emojiPicker {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            z-index: 10;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .emoji {
+            cursor: pointer;
+            font-size: 1.5em;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Gelişmiş Online Mesajlaşma Sitesi</h1>
+    <div id="onlineCount">Çevrimiçi Kullanıcı Sayısı: <span id="userCount">0</span></div>
+    <div id="userList"></div>
+    
+    <input type="text" id="username" placeholder="Kullanıcı Adınızı Girin" autofocus>
+    <input type="text" id="profilePic" placeholder="Profil Resim URL'si (opsiyonel)">
+    <input type="text" id="status" placeholder="Durum (opsiyonel)">
+    <button onclick="startChat()">Başla</button>
+
+    <div id="chat" style="display: none;">
+        <h2 style="margin: 0; padding: 10px; background: #007bff; color: white;">Mesajlaşma Alanı</h2>
+        <div id="messages"></div>
+        <div id="inputArea">
+            <input type="text" id="messageInput" placeholder="Mesajınızı yazın">
+            <button id="sendButton" onclick="sendMessage()">Gönder</button>
+        </div>
+        <div id="emojiPicker">
+            <span class="emoji" onclick="addEmoji('😊')">😊</span>
+            <span class="emoji" onclick="addEmoji('😂')">😂</span>
+            <span class="emoji" onclick="addEmoji('😍')">😍</span>
+            <span class="emoji" onclick="addEmoji('😢')">😢</span>
+            <span class="emoji" onclick="addEmoji('😡')">😡</span>
+        </div>
+    </div>
+
+    <script>
+        const messageColors = {};
+        let userCount = 0;
+        const usernames = new Set();
+
+        function startChat() {
+            const username = document.getElementById('username').value.trim();
+            const profilePic = document.getElementById('profilePic').value.trim();
+            const status = document.getElementById('status').value.trim();
+            
+            if (username && !usernames.has(username)) {
+                usernames.add(username);
+                messageColors[username] = getRandomColor();
+                userCount++;
+                updateUserCount();
+                updateUserList(profilePic, status);
+                
+                document.getElementById('chat').style.display = 'block';
+                addMessage(`${username} bağlandı.`, 'blue', true);
+                
+                window.onbeforeunload = function() {
+                    userCount--;
+                    usernames.delete(username);
+                    updateUserCount();
+                    updateUserList();
+                    addMessage(`${username} ayrıldı.`, 'blue', true);
+                };
+            } else if (usernames.has(username)) {
+                alert('Bu kullanıcı adı zaten kullanılıyor.');
+            } else {
+                alert('Lütfen bir kullanıcı adı girin.');
+            }
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            const username = document.getElementById('username').value.trim();
+
+            if (message && username) {
+                const timestamp = new Date().toLocaleString();
+                const color = messageColors[username];
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.innerHTML = `
+                    <span style="color: ${color};" class="username">${username}:</span> ${message}
+                    <span class="timestamp">${timestamp}</span>
+                    <button class="delete-button" onclick="deleteMessage(this)">Sil</button>
+                `;
+                
+                document.getElementById('messages').appendChild(messageDiv);
+                messageInput.value = '';
+                document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            }
+        }
+
+        function deleteMessage(button) {
+            const messageDiv = button.parentNode;
+            messageDiv.remove();
+        }
+
+        function updateUserCount() {
+            document.getElementById('userCount').innerText = userCount;
+        }
+
+        function updateUserList(profilePic, status) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = 'Çevrimiçi Kullanıcılar: ' + Array.from(usernames).join(', ');
+            if (profilePic || status) {
+                userList.innerHTML += `<div class="profile"><img src="${profilePic || 'https://example.com/default-profile.png'}" alt="Profil Resmi"> <span>${status || 'Durum yok'}</span></div>`;
+            }
+        }
+
+        function addEmoji(emoji) {
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value += emoji;
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+
+</body>
+</html>
